@@ -1,30 +1,44 @@
-from app.db.supabase_client import get_supabase
-from app.models.user import UserPreferences
-from app.models.meal import MealPlan
-from app.services.ai_service import generate_meal_plan
+from app.db.supabase_client import supabase
+from app.utils.prompt_builder import build_prompt
+from app.services.ai_service import generate_meal_from_ai
+from datetime import date
 
-async def create_or_update_preferences(user_id: str, preferences: UserPreferences):
-    supabase = await get_supabase()
-    data = {**preferences.dict(), "user_id": user_id}
-    await supabase.table("user_preferences").upsert(data).execute()
-
-async def generate_and_save_meal(user_id: str) -> MealPlan:
-    supabase = await get_supabase()
-    
+def generate_meal(user_id: str):
     # Fetch preferences
-    resp = await supabase.table("user_preferences").select("*").eq("user_id", user_id).execute()
-    if not resp.data:
-        raise ValueError("No preferences found for user")
-    
-    prefs = UserPreferences(**resp.data[0])
-    meal_plan = await generate_meal_plan(prefs)
-    
-    # Save meal plan
-    await supabase.table("meal_plans").insert({
-        "user_id": user_id,
-        "date": meal_plan.date.isoformat(),
-        "plan_data": meal_plan.model_dump_json()
-    }).execute()
-    
-    return meal_plan
+    pref_res = supabase.table("preferences") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .execute()
 
+    if not pref_res.data:
+        raise ValueError("Preferences not set")
+
+    preferences = pref_res.data[0]
+
+    # Fetch failed meals
+    history_res = supabase.table("meal_history") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .eq("followed", False) \
+        .execute()
+
+    failed_meals = [h["meal_name"] for h in history_res.data]
+    feedback_notes = [
+        h["feedback_notes"] for h in history_res.data if h["feedback_notes"]
+    ]
+
+    # Build prompt
+    prompt = build_prompt(preferences, failed_meals, feedback_notes)
+
+    # Call AI
+    meal = generate_meal_from_ai(prompt)
+
+    # Save to history
+    supabase.table("meal_history").insert({
+        "user_id": user_id,
+        "meal_name": meal["name"],
+        "date_assigned": str(date.today()),
+        "followed": None
+    }).execute()
+
+    return meal

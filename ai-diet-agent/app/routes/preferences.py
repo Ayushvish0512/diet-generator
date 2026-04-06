@@ -6,14 +6,20 @@ router = APIRouter()
 
 @router.get("/preferences/{user_id}")
 def get_preferences(user_id: str):
-    res = supabase.table("users").select("*").eq("id", user_id).execute()
+    res = supabase.table("preferences") \
+        .select("*") \
+        .eq("user_id", user_id) \
+        .execute()
+
     return res.data
 
 @router.put("/preferences/{user_id}")
 def update_preferences(user_id: str, prefs: UserPreferences):
-    supabase.table("users") \
-        .update(prefs.dict()) \
-        .eq("id", user_id) \
+    supabase.table("preferences") \
+        .upsert({
+            "user_id": user_id,
+            **prefs.dict()
+        }) \
         .execute()
 
     return {"status": "updated"}

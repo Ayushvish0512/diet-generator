@@ -1,35 +1,34 @@
 from app.models.user import UserPreferences, GoalEnum, DietaryRestrictionEnum
 
-def build_diet_prompt(preferences: UserPreferences) -> str:
-    restrictions = ", ".join(preferences.dietary_restrictions) if preferences.dietary_restrictions else "none"
-    allergies = ", ".join(preferences.allergies) if preferences.allergies else "none"
+def build_prompt(preferences: dict, failed_meals: list[str], feedback_notes: list[str]) -> str:
+    restrictions = ", ".join(preferences.get("dietary_restrictions", [])) if preferences.get("dietary_restrictions") else "none"
+    allergies = ", ".join(preferences.get("allergies", [])) if preferences.get("allergies") else "none"
+    
+    failed_section = ""
+    if failed_meals:
+        failed_section = f"Avoid these previously failed meals: {', '.join(failed_meals)}. "
+    if feedback_notes:
+        failed_section += f"User feedback from failures: {'; '.join(feedback_notes)}. "
     
     return f"""
-    Generate a personalized 1-day meal plan for a {preferences.age} year old, 
-    {preferences.weight_kg}kg, {preferences.height_cm}cm tall person with {preferences.activity_level} activity level.
+    Generate a single daily meal suggestion (breakfast OR lunch OR dinner - pick one primary meal) for a {preferences.get('age', 30)} year old, 
+    {preferences.get('weight_kg', 70)}kg, {preferences.get('height_cm', 170)}cm tall person with {preferences.get('activity_level', 'moderate')} activity level.
     
-    Goal: {preferences.goal.value}
+    Goal: {preferences.get('goal', 'maintenance')}
     Dietary restrictions: {restrictions}
     Allergies: {allergies}
+    {failed_section}
     
-    Provide breakfast, lunch, dinner, and 2 snacks. Include:
-    - Recipe name
-    - Ingredients list
-    - Instructions
-    - Estimated calories
-    - Macros (protein/carbs/fat grams)
+    Provide one main meal with:
+    - name
+    - ingredients list
+    - instructions
+    - estimated calories
+    - macros (protein/carbs/fat grams)
     
-    Return as valid JSON matching this schema:
-    {{
-        "date": "YYYY-MM-DD",
-        "breakfast": {{...}},
-        "lunch": {{...}},
-        "dinner": {{...}},
-        "snacks": [{{...}}, {{...}}],
-        "total_calories": 1100
-    }}
+    Return ONLY JSON: {{"name": "Meal Name", "ingredients": ["item1", "item2"], "instructions": "steps...", "calories": 500, "macros": {{"protein": 30, "carbs": 60, "fat": 20}}}}
     
-    Each meal: {{"name": "...", "ingredients": [...], "instructions": "...", "calories": 500, "macros": {{"protein": 30, "carbs": 60, "fat": 20}}}}
-    Target ~{preferences.calories_per_day or 2200} calories total.
+    Keep simple, realistic, under 45 min prep. Target ~{preferences.get('calories_per_day', 2200) / 3} calories.
     """
+
 

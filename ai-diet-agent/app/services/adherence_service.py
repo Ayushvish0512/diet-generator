@@ -1,8 +1,12 @@
-from app.db.supabase_client import get_supabase
-from app.models.history import AdherenceLog
+from app.db.supabase_client import supabase
 
-async def log_adherence(log: AdherenceLog):
-    supabase = await get_supabase()
-    data = log.dict()
-    await supabase.table("adherence_logs").insert(data).execute()
+def log_adherence(meal_name: str, followed: bool, feedback: str = None):
+    supabase.table("meal_history") \
+        .update({
+            "followed": followed,
+            "feedback_notes": feedback
+        }) \
+        .eq("meal_name", meal_name) \
+        .execute()
 
+    return {"status": "updated"}
