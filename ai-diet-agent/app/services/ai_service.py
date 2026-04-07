@@ -7,39 +7,47 @@ from app.models.meal import MealPlan
 from app.utils.prompt_builder import build_prompt
 
 if settings.USE_LOCAL_MODEL:
-    from app.services.local_model_service import get_local_model
-    # The local model uses its own singleton to manage memory
-    local_ai = get_local_model()
+    # Use OpenAI SDK but point it to the local Ollama endpoint
+    client = AsyncOpenAI(
+        base_url=settings.OLLAMA_BASE_URL,
+        api_key="ollama" # Required but ignored by Ollama
+    )
+    sync_client = OpenAI(
+        base_url=settings.OLLAMA_BASE_URL,
+        api_key="ollama"
+    )
+    MODEL_NAME = settings.OLLAMA_MODEL
 else:
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
     sync_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    MODEL_NAME = "gpt-4o-mini"
 
 async def generate_meal_plan(preferences: UserPreferences) -> MealPlan:
     prompt = build_diet_prompt(preferences)
     
-    if settings.USE_LOCAL_MODEL:
-        # MedGemma expects JSON instructions in the prompt
-        result = local_ai.generate_json(prompt)
-        return MealPlan.model_validate(result)
-    else:
-        response = await client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
-        )
-        meal_plan_str = response.choices[0].message.content
-        return MealPlan.model_validate_json(meal_plan_str)
+    response = await client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2 # Lower temperature for medical precision
+    )
+    
+    meal_plan_str = response.choices[0].message.content
+    # MedGemma might wrap JSON in ```json blocks
+    if "```json" in meal_plan_str:
+        meal_plan_str = meal_plan_str.split("```json")[1].split("```")[0]
+    
+    return MealPlan.model_validate_json(meal_plan_str)
 
 def generate_meal_from_ai(prompt: str) -> dict:
-    if settings.USE_LOCAL_MODEL:
-        return local_ai.generate_json(prompt)
-    else:
-        response = sync_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.7
-        )
-        content = response.choices[0].message.content
+    response = sync_client.chat.completions.create(
+        model=MODEL_NAME,
+        messages=[{"role": "user", "content": prompt}],
+        temperature=0.2
+    )
+    
+    content = response.choices[0].message.content
+    if "```json" in content:
+        content = content.split("```json")[1].split("```")[0]
         # ... rest of the existing JSON parsing logic
     
     try:
