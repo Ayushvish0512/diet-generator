@@ -1,24 +1,37 @@
-# AI Diet Agent
+# 🥗 AI Diet Agent (MedGemma Edition)
 
-A FastAPI application that generates personalized meal plans using AI (LLM) and stores data in Supabase.
+A production-grade FastAPI application that generates hyper-personalized Indian meal plans using **MedGemma-4b-it** (running locally via Ollama).
 
-## Setup
+## 🚀 Key Features
+- **Medical-Grade AI:** Powered by Google's MedGemma, specialized for nutrition and health.
+- **Local Inference:** 100% private and free meal generation using Ollama.
+- **Evening Kitchen Audit:** Automatically checks your pantry every night and pivots tomorrow's plan if ingredients are missing.
+- **Indian Nutrition Data:** Integrated with ICMR-NIN (IFCT) standards for accurate macro tracking.
 
-1. Copy `.env.example` to `.env` and fill in your secrets.
-2. `pip install -r requirements.txt`
-3. `uvicorn app.main:app --reload`
+## 🛠️ Local Setup
 
-## Endpoints
+1. **Install Ollama:** Download from [ollama.com](https://ollama.com).
+2. **Pull the Model:**
+   ```bash
+   ollama pull MedAIBase/MedGemma1.5:4b-it
+   ```
+3. **Configure Environment:**
+   Copy `.env.example` to `.env` and set `USE_LOCAL_MODEL=true`.
+4. **Install Dependencies:**
+   ```bash
+   cd ai-diet-agent
+   pip install -r requirements.txt
+   ```
+5. **Launch:**
+   ```bash
+   uvicorn app.main:app --reload
+   ```
 
-- POST /preferences: Set user preferences
-- POST /generate-meal: Generate AI meal plan
-- POST /log-adherence: Log meal adherence
-
-
-
-## Deploy to Render
-
-Push to Git (exclude .env), connect to Render, set env vars.
+## 🧠 Why MedGemma?
+Unlike general models (Llama/GPT), **MedGemma** is fine-tuned on medical datasets. This means:
+- **Better RDA Accuracy:** It understands Recommended Dietary Allowances for different body types.
+- **Safer Substitutions:** It knows which food swaps maintain nutritional profiles.
+- **Indian Dish Knowledge:** Expert at decomposing complex dishes like *Poha, Paneer Bhurji, and Dal Tadka*.
 
 🧠 **Best Open-Source AI Models for Diet Planning (2026)**
 🥇 **1. LLaMA-based models (Best overall foundation)**

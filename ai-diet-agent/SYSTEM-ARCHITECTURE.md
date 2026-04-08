@@ -66,11 +66,11 @@ def compute_deficiency(required, actual):
 
 ---
 
-## 🔎 4. RAG & SLM Integration
+## 🔎 4. RAG & SLM Integration (MedGemma Edition)
 
 1.  **RAG Pipeline:** Retrieves semantic knowledge (e.g., "Leafy greens are rich in calcium") based on detected deficiencies.
 2.  **Prompt Builder:** Constructs a structured JSON prompt containing deficiencies and retrieved context.
-3.  **SLM Generation:** The model maps `deficiency` → `food suggestions` using the provided context.
+3.  **SLM Generation:** Powered by **MedGemma-4b-it** running locally via **Ollama**. This specialized medical model maps `deficiency` → `food suggestions` with clinical-grade accuracy.
 
 ---
 
